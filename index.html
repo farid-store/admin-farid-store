@@ -2,71 +2,216 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farid Store - Central Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Central Ledger - Farid Store HQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="dashboard-container">
-        <header class="top-header">
-            <div class="logo">
-                <i class="fas fa-store"></i>
-                <h1>Farid Store <span>HQ</span></h1>
-            </div>
-            <div class="controls">
-                <label for="resellerSelect">Pilih Cabang / Reseller:</label>
-                <select id="resellerSelect">
-                    </select>
-                <button id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh Data</button>
-            </div>
-        </header>
+<body class="antialiased lg:overflow-hidden">
 
-        <main class="main-content">
-            <div class="summary-grid">
-                <div class="card">
-                    <div class="card-icon"><i class="fas fa-box-open"></i></div>
-                    <div class="card-info">
-                        <h3>Total Stok Gadget</h3>
-                        <p id="totalStock">0 Unit</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-icon"><i class="fas fa-wallet"></i></div>
-                    <div class="card-info">
-                        <h3>Total Saldo Kas</h3>
-                        <p id="totalCash">Rp 0</p>
-                    </div>
-                </div>
-                <div class="card highlight">
-                    <div class="card-icon"><i class="fas fa-chart-line"></i></div>
-                    <div class="card-info">
-                        <h3>Estimasi Nilai Aset</h3>
-                        <p id="totalAsset">Rp 0</p>
-                    </div>
-                </div>
+    <div id="authModal">
+        <div class="max-w-sm w-full text-center p-8">
+            <div class="mb-6">
+                <div class="w-16 h-16 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-200 mb-4"><span class="text-3xl">🔐</span></div>
+                <h2 class="text-2xl font-black text-slate-800 mb-1">HQ ACCESS</h2>
+                <p class="text-slate-500 text-xs">Masukkan 6 digit PIN Master.</p>
             </div>
+            <input type="password" inputmode="numeric" id="pinInput" class="w-full text-center text-3xl font-black tracking-[10px] py-4 border-b-2 border-slate-200 focus:border-indigo-600 outline-none bg-transparent transition text-slate-800 mb-8 placeholder-slate-300" placeholder="••••••" maxlength="6" oninput="checkAutoPin(this)">
+            <button onclick="enterClientMode()" class="text-slate-400 text-xs font-bold hover:text-slate-600 transition uppercase tracking-wider">Masuk sebagai Tamu</button>
+        </div>
+    </div>
 
-            <div class="table-container">
-                <div class="table-header">
-                    <h2>Detail Stok & Aset Berjalan</h2>
-                    <div class="status-indicator" id="loadingStatus">Menunggu sinkronisasi...</div>
+    <div id="loadingCloud" style="display: none;">
+        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <span id="loadingText" class="text-sm font-bold text-slate-700 uppercase tracking-widest">Sinkronisasi Jaringan...</span>
+    </div>
+
+    <div class="flex flex-col lg:flex-row min-h-screen w-full lg:h-screen lg:overflow-hidden">
+        
+        <div id="overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-40 lg:hidden" onclick="toggleSidebar()"></div>
+
+        <aside id="sidebar" class="fixed lg:static top-0 left-0 h-full w-64 bg-[#1e293b] text-white shadow-2xl flex flex-col -translate-x-full lg:translate-x-0 overflow-y-auto flex-shrink-0">
+            <div class="p-6">
+                <h2 class="text-xl font-extrabold mb-8 flex items-center gap-3 italic tracking-tight">
+                    <span class="bg-indigo-600 p-2 rounded-lg not-italic">📱</span> MENU
+                </h2>
+                <nav class="space-y-2">
+                    <div onclick="switchPage('main')" class="sidebar-item hover:bg-indigo-600 hover:text-white transition"><span class="mr-3 text-lg">📊</span> Dashboard Utama</div>
+                    <div class="admin-only-view"><div onclick="switchPage('analytics')" class="sidebar-item hover:bg-indigo-600 hover:text-white transition"><span class="mr-3 text-lg">📈</span> Analisa Bisnis</div></div>
+                    
+                    <div>
+                        <div onclick="toggleDropdown('dropCheck')" class="sidebar-item justify-between"><span class="flex items-center"><span class="mr-3 text-lg">🔍</span> Gadget Check</span></div>
+                        <div id="dropCheck" class="dropdown-content">
+                            <div onclick="switchPage('hp')" class="sidebar-item text-xs pl-12">Handphone Check</div>
+                            <div onclick="switchPage('dial')" class="sidebar-item text-xs pl-12">Dial Check (Kode)</div>
+                            <div onclick="switchPage('laptop')" class="sidebar-item text-xs pl-12">Laptop Check</div>
+                            <div onclick="switchPage('repair')" class="sidebar-item text-xs pl-12 text-red-400 font-bold">🔓 FRP & Repair</div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-slate-700 my-4"></div>
+                    
+                    <div class="sidebar-calc admin-only-view">
+                        <div class="calc-display"><div id="calc-prev"></div><div id="calc-curr">0</div></div>
+                        <div class="calc-grid">
+                            <button class="btn-ac" onclick="calcClear()">AC</button><button onclick="calcDel()">DEL</button><button onclick="calcPerc()">%</button><button class="btn-op" onclick="calcOp('/')">÷</button>
+                            <button onclick="calcNum('7')">7</button><button onclick="calcNum('8')">8</button><button onclick="calcNum('9')">9</button><button class="btn-op" onclick="calcOp('*')">×</button>
+                            <button onclick="calcNum('4')">4</button><button onclick="calcNum('5')">5</button><button onclick="calcNum('6')">6</button><button class="btn-op" onclick="calcOp('-')">-</button>
+                            <button onclick="calcNum('1')">1</button><button onclick="calcNum('2')">2</button><button onclick="calcNum('3')">3</button><button class="btn-op" onclick="calcOp('+')">+</button>
+                            <button onclick="calcNum('0')">0</button><button onclick="calcNum('.')">.</button><button class="btn-eq" onclick="calcResult()" style="grid-column: span 2;">=</button>
+                        </div>
+                    </div>
+
+                </nav>
+
+                <div class="mt-8">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-3 tracking-widest">Access Mode</p>
+                    <button id="btnAccessIndicator" class="w-full py-2 rounded-lg text-[10px] font-black bg-slate-700 text-slate-400">LOCKED</button>
                 </div>
-                <table id="dataTable">
-                    <thead>
-                        <tr>
-                            <th>Lokasi/Reseller</th>
-                            <th>Tipe Gadget (HP/Laptop)</th>
-                            <th>Status</th>
-                            <th>Modal Beli</th>
-                            <th>Estimasi Jual</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        </tbody>
-                </table>
+                <div class="mt-4 pb-8 admin-only-view">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-3 tracking-widest">Privacy Mode</p>
+                    <button onclick="toggleBlur()" id="btnBlur" class="w-full py-2 rounded-lg text-[10px] font-black text-slate-500 hover:text-white transition">👁️ MODE BLUR: OFF</button>
+                </div>
             </div>
-        </main>
+        </aside>
+
+        <div class="flex-1 flex flex-col w-full h-full lg:overflow-hidden relative">
+            
+            <main id="page-main" class="flex-1 flex flex-col lg:flex-row w-full h-full lg:overflow-hidden">
+                <div class="flex-1 lg:overflow-y-auto p-4 md:p-8 w-full">
+                    
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
+                        <div class="flex items-center justify-between mb-4 w-full">
+                            <button onclick="toggleSidebar()" class="lg:hidden p-2.5 bg-slate-50 rounded-xl border text-indigo-600 font-bold">☰</button>
+                            
+                            <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-xl flex-1 ml-2 lg:ml-0 admin-only-view">
+                                <span class="text-xl">🏢</span>
+                                <select id="branchSelect" onchange="switchBranch(this.value)" class="bg-transparent w-full font-bold text-indigo-900 text-xs outline-none cursor-pointer">
+                                    </select>
+                            </div>
+                            
+                            <button onclick="forceSync()" class="ml-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-blue-700 admin-only-view">↻ Sync</button>
+                        </div>
+
+                        <div class="flex justify-between items-end border-t border-slate-100 pt-4">
+                            <div>
+                                <h1 class="text-lg md:text-2xl font-extrabold tracking-tighter text-slate-900 uppercase leading-none">DIGITAL <span class="text-indigo-600">LEDGER</span></h1>
+                                <p id="currentMonth" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1"></p>
+                            </div>
+                            <div class="text-right flex flex-col items-end admin-only-view">
+                                <div id="rankBadge" class="badge-rank bg-slate-200 text-slate-500 mb-1">Unranked</div>
+                                <h2 id="summaryProfit" class="text-xl font-black text-emerald-600 leading-none sensitive-data">Rp 0</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="clientBanner" class="hidden mb-8 landing-theme relative w-full">
+                        <div class="relative z-10 p-6 md:p-10">
+                            <div class="flex justify-between items-center border-b border-white/10 pb-6 mb-8 gap-4">
+                                <div>
+                                    <h2 class="text-3xl font-black tracking-tight mb-2">Live <span class="text-[#38bdf8]">Inventory.</span></h2>
+                                </div>
+                                <button onclick="enableSandboxMode()" class="bg-white/10 border border-white/20 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-lg">🎮 Demo Admin</button>
+                            </div>
+
+                            <div class="insight-slider-container mb-6">
+                                <div class="insight-slide active" id="slide-1">
+                                    <div><p class="text-[#38bdf8] font-bold text-[10px] uppercase">Terlaris Saat Ini</p><h3 id="guest-best-seller" class="text-3xl font-black text-white">Memuat...</h3></div>
+                                </div>
+                                <div class="insight-slide next" id="slide-2">
+                                    <div><p class="text-[#a78bfa] font-bold text-[10px] uppercase">Terjual Bln Ini</p><h3 id="guest-sales-month" class="text-3xl font-black text-white">0</h3></div>
+                                </div>
+                                <div class="insight-slide prev" id="slide-3">
+                                    <div><p class="text-[#34d399] font-bold text-[10px] uppercase">Baru Laku</p><div id="recent-sold-list" class="ticker-slider-box w-full"></div></div>
+                                </div>
+                            </div>
+                            
+                            <div class="sold-marquee-container-lp">
+                                <div id="sold-marquee-list" class="sold-marquee-content-lp"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sandboxBanner" class="hidden mb-6 bg-orange-100 border-l-4 border-orange-500 text-orange-900 p-4 rounded-xl">
+                        <h3 class="font-bold text-xs uppercase">⚠️ SANDBOX MODE</h3><p class="text-[10px]">Data tidak akan disinkronkan ke Cloud.</p>
+                    </div>
+
+                    <div id="admin-dashboard-section" class="admin-only-view">
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="card p-5 border-b-4 border-indigo-500"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Uang Tunai (Cash)</p><h2 id="summaryCash" class="text-lg font-bold sensitive-data">Rp 0</h2></div>
+                            <div class="card p-5 border-b-4 border-emerald-500"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Total Floating</p><h2 id="summaryFloating" class="text-lg font-bold sensitive-data">Rp 0</h2></div>
+                            <div class="card p-6 col-span-2 text-center bg-slate-900 text-white shadow-xl"><p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Total Aset</p><h2 id="summaryTotal" class="text-3xl font-black sensitive-data">Rp 0</h2></div>
+                        </div>
+
+                        <div id="readOnlyBanner" class="hidden mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-xs font-bold border border-red-200 text-center">
+                            👁️ MODE PENGAMATAN GLOBAL - Fitur Input/Edit Dinonaktifkan
+                        </div>
+
+                        <div id="actionPanelsWrapper">
+                            <div class="card p-6 mb-4">
+                                <h3 class="font-bold text-slate-800 mb-3 text-xs uppercase">📝 Smart Input Teks</h3>
+                                <textarea id="bulkInput" class="input-field h-20 mb-4 text-sm" placeholder="Contoh: Poco M3 : 500.000 > 600.000"></textarea>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="parseText('old')" class="py-2 bg-slate-700 text-white rounded-lg font-bold text-xs">Stok Lama [L]</button>
+                                    <button onclick="parseText('new')" class="py-2 bg-emerald-600 text-white rounded-lg font-bold text-xs">Belanja Baru [B]</button>
+                                </div>
+                            </div>
+                            
+                            <div class="card p-5 bg-indigo-50/50 mb-6">
+                                <h3 class="font-bold text-indigo-900 text-[10px] uppercase mb-2">Modal Tunai di Tangan</h3>
+                                <input type="number" id="startBalance" class="input-field font-black text-lg text-indigo-700" value="0" onchange="calculateAll()">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="w-full lg:w-[400px] xl:w-[450px] flex-shrink-0 bg-slate-50 lg:bg-white lg:border-l border-slate-200 lg:overflow-y-auto p-4 md:p-6 pb-24">
+                    <div class="mb-6 space-y-4 sticky top-0 bg-slate-50 lg:bg-white z-10 pt-2 pb-2">
+                        <select id="sortSelect" onchange="setSort(this.value)" class="w-full bg-white border border-slate-200 text-slate-700 text-xs p-2 rounded-lg shadow-sm">
+                            <option value="date_desc">✨ Terbaru</option>
+                            <option value="date_asc">⏳ Terlama</option>
+                            <option value="name_asc">🔤 A-Z</option>
+                        </select>
+                        <input type="text" id="searchInput" onkeyup="renderRows()" placeholder="Cari unit..." class="input-field text-sm bg-white shadow-sm">
+                        <div class="flex bg-slate-200 p-1 rounded-xl gap-1">
+                            <button onclick="setFilter('stok')" id="tabStok" class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase bg-white text-indigo-600 shadow-sm">Unit Stok</button>
+                            <button onclick="setFilter('sold')" id="tabSold" class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase text-slate-500">Terjual</button>
+                        </div>
+                    </div>
+                    <div id="itemRows" class="space-y-3 mb-20"></div>
+                </div>
+            </main>
+
+            <div id="page-analytics" class="max-w-4xl w-full mx-auto hidden flex-1 lg:overflow-y-auto pt-8 px-4 pb-20">
+                <button onclick="switchPage('main')" class="mb-4 text-indigo-600 font-bold text-xs uppercase">← Kembali Dashboard</button>
+                <h1 class="text-2xl font-black italic text-slate-800 mb-6">📊 ANALISA BISNIS</h1>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div class="card p-4 border-l-4 border-indigo-500"><p class="text-[9px] uppercase font-black mb-1">Unit Ready</p><h2 id="statUnitReady" class="text-xl font-black">0</h2></div>
+                    <div class="card p-4 border-l-4 border-emerald-500"><p class="text-[9px] uppercase font-black mb-1">Laku Bln Ini</p><h2 id="statUnitBulanIni" class="text-xl font-black">0</h2></div>
+                    <div class="card p-4 border-l-4 border-amber-500"><p class="text-[9px] uppercase font-black mb-1">Total Laku</p><h2 id="statUnitAllTime" class="text-xl font-black">0</h2></div>
+                </div>
+                <div class="card p-5 mb-6"><h3 class="font-bold text-xs uppercase mb-4">Grafik Profit</h3><div class="h-64"><canvas id="profitYearChart"></canvas></div></div>
+            </div>
+            
+            <div id="page-hp" class="hidden p-8"><button onclick="switchPage('main')">Kembali</button><h1>HP Check Tools... (Sesuai original)</h1></div>
+            <div id="page-laptop" class="hidden p-8"><button onclick="switchPage('main')">Kembali</button><h1>Laptop Check Tools... (Sesuai original)</h1></div>
+            <div id="page-dial" class="hidden p-8"><button onclick="switchPage('main')">Kembali</button><h1>Dial Check Tools... (Sesuai original)</h1></div>
+            <div id="page-repair" class="hidden p-8"><button onclick="switchPage('main')">Kembali</button><h1>Repair Tools... (Sesuai original)</h1></div>
+
+        </div>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 hidden" onclick="if(event.target===this) closeEditModal()">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <h3 class="text-lg font-black text-slate-800 uppercase mb-4">✏️ Edit Barang</h3>
+            <input type="text" id="editItemName" class="input-field mb-2" placeholder="Nama">
+            <input type="number" id="editItemModal" class="input-field mb-2" placeholder="Modal">
+            <input type="number" id="editItemPrice" class="input-field mb-4" placeholder="Jual">
+            <button onclick="saveEditItem()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">SIMPAN</button>
+        </div>
     </div>
 
     <script src="script.js"></script>
