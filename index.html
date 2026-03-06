@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farid Store - Central Management</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="top-header">
+            <div class="logo">
+                <i class="fas fa-store"></i>
+                <h1>Farid Store <span>HQ</span></h1>
+            </div>
+            <div class="controls">
+                <label for="resellerSelect">Pilih Cabang / Reseller:</label>
+                <select id="resellerSelect">
+                    </select>
+                <button id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh Data</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="summary-grid">
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-box-open"></i></div>
+                    <div class="card-info">
+                        <h3>Total Stok Gadget</h3>
+                        <p id="totalStock">0 Unit</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-wallet"></i></div>
+                    <div class="card-info">
+                        <h3>Total Saldo Kas</h3>
+                        <p id="totalCash">Rp 0</p>
+                    </div>
+                </div>
+                <div class="card highlight">
+                    <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="card-info">
+                        <h3>Estimasi Nilai Aset</h3>
+                        <p id="totalAsset">Rp 0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>Detail Stok & Aset Berjalan</h2>
+                    <div class="status-indicator" id="loadingStatus">Menunggu sinkronisasi...</div>
+                </div>
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>Lokasi/Reseller</th>
+                            <th>Tipe Gadget (HP/Laptop)</th>
+                            <th>Status</th>
+                            <th>Modal Beli</th>
+                            <th>Estimasi Jual</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
